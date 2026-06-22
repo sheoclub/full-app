@@ -17,10 +17,29 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+const normalizeOrigin = (value) => {
+    try {
+        return new URL(value).origin;
+    } catch (error) {
+        return '';
+    }
+};
+
+const allowedOrigins = new Set(config.corsOrigins.map(normalizeOrigin).filter(Boolean));
+
 app.use(cors({
     origin(origin, callback) {
-        if (!origin || config.corsOrigins.includes(origin) || config.nodeEnv === 'development') return callback(null, true);
-        return callback(new Error('Not allowed by CORS'));
+        const requestOrigin = normalizeOrigin(origin);
+        if (!origin || config.nodeEnv === 'development' || allowedOrigins.has(requestOrigin)) {
+            return callback(null, true);
+        }
+
+        // Vercel same-site deployments can send an Origin header even when the API is served from the same app.
+        if (requestOrigin.endsWith('.vercel.app')) {
+            return callback(null, true);
+        }
+
+        return callback(null, false);
     },
     credentials: true,
 }));
