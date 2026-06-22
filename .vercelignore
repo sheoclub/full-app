@@ -1,0 +1,17 @@
+.history
+plans
+complete_data_dump.json
+data_dump_neon.json
+data_dump.json
+.env
+.env.*
+node-backend/.env
+node-backend/.env.*
+frontend/.env
+frontend/.env.*
+venv
+.venv
+frontend/dist
+node-backend/node_modules
+frontend/node_modules
+node_modules

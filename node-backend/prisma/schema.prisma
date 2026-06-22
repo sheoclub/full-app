@@ -1,0 +1,333 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    Int                @id @default(autoincrement())
+  password              String
+  lastLogin             DateTime?          @map("last_login")
+  isSuperuser           Boolean            @default(false) @map("is_superuser")
+  username              String             @unique
+  firstName             String             @default("") @map("first_name")
+  lastName              String             @default("") @map("last_name")
+  email                 String             @unique
+  isStaff               Boolean            @default(false) @map("is_staff")
+  isActive              Boolean            @default(true) @map("is_active")
+  dateJoined            DateTime           @default(now()) @map("date_joined")
+  address               String             @default("")
+  city                  String             @default("")
+  state                 String             @default("")
+  postalCode            String             @default("") @map("postal_code")
+  country               String             @default("")
+  phone                 String             @default("")
+  isSuspended           Boolean            @default(false) @map("is_suspended")
+  newsletterSubscribed  Boolean            @default(false) @map("newsletter_subscribed")
+  orders                Order[]
+  reviews               Review[]
+  wishlistItems         Wishlist[]
+  notifications         UserNotification[]
+  contactMessages       ContactMessage[]
+  assignedCoupons       Coupon[]           @relation("AssignedCoupons")
+
+  @@map("store_user")
+}
+
+model Brand {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  slug        String    @unique
+  description String    @default("")
+  image       String    @default("")
+  website     String    @default("")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  products    Product[]
+
+  @@map("store_brand")
+}
+
+model Category {
+  id                 Int       @id @default(autoincrement())
+  name               String    @unique
+  description        String    @default("")
+  image              String?
+  sortOrder          Int       @default(0) @map("sort_order")
+  isActive           Boolean   @default(true) @map("is_active")
+  discountPercentage Decimal   @default(0) @map("discount_percentage") @db.Decimal(5, 2)
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  products           Product[]
+  coupons            Coupon[]  @relation("CategoryCoupons")
+
+  @@map("store_category")
+}
+
+model Product {
+  id                Int            @id @default(autoincrement())
+  name              String
+  slug              String         @unique
+  description       String         @default("")
+  price             Decimal        @db.Decimal(10, 2)
+  comparePrice      Decimal?       @map("compare_price") @db.Decimal(10, 2)
+  retailPrice       Decimal        @default(0) @map("retail_price") @db.Decimal(10, 2)
+  stock             Int            @default(0)
+  categoryId        Int?           @map("category_id")
+  brandId           Int?           @map("brand_id")
+  image             String         @default("")
+  imageAlt          String         @default("") @map("image_alt")
+  status            Boolean        @default(true)
+  isFeatured        Boolean        @default(false) @map("is_featured")
+  hasVariants       Boolean        @default(false) @map("has_variants")
+  freeDelivery      Boolean        @default(false) @map("free_delivery")
+  minQuantity       Int            @default(1) @map("min_quantity")
+  deliveryCharge    Decimal        @default(0) @map("delivery_charge") @db.Decimal(10, 2)
+  specifications    Json?
+  tags              String         @default("")
+  metaTitle         String         @default("") @map("meta_title")
+  metaKeywords      String         @default("") @map("meta_keywords")
+  metaDescription   String         @default("") @map("meta_description")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  category          Category?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  brand             Brand?         @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  variants          ProductVariant[]
+  galleryImages     ProductImage[]
+  reviews           Review[]
+  wishlistItems     Wishlist[]
+  orderItems        OrderItem[]
+  banners           Banner[]
+
+  @@map("store_product")
+}
+
+model ProductVariant {
+  id            Int       @id @default(autoincrement())
+  productId     Int       @map("product_id")
+  size          String    @default("")
+  color         String    @default("")
+  colorCode     String    @default("") @map("color_code")
+  sku           String    @unique
+  priceOverride Decimal?  @map("price_override") @db.Decimal(10, 2)
+  stock         Int       @default(0)
+  image         String    @default("")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  wishlists     Wishlist[]
+  orderItems    OrderItem[]
+
+  @@unique([productId, size, color])
+  @@map("store_productvariant")
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  image     String
+  altText   String   @default("") @map("alt_text")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("store_productimage")
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  productId  Int      @map("product_id")
+  userId     Int      @map("user_id")
+  rating     Int
+  title      String   @default("")
+  comment    String   @default("")
+  isApproved Boolean  @default(false) @map("is_approved")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notifications UserNotification[]
+
+  @@unique([productId, userId])
+  @@map("store_review")
+}
+
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  productId Int      @map("product_id")
+  variantId Int?     @map("variant_id")
+  addedAt   DateTime @default(now()) @map("added_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, productId])
+  @@map("store_wishlist")
+}
+
+model Banner {
+  id         Int      @id @default(autoincrement())
+  image      String
+  title      String   @default("")
+  subtitle   String   @default("")
+  linkUrl    String   @default("") @map("link_url")
+  bannerType String   @default("hero") @map("banner_type")
+  active     Boolean  @default(true) @map("is_active")
+  sortOrder  Int      @default(0) @map("sort_order")
+  productId  Int?     @map("product_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  product    Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@map("store_banner")
+}
+
+model Coupon {
+  id             Int        @id @default(autoincrement())
+  code           String     @unique
+  discountType   String     @default("percentage") @map("discount_type")
+  discountValue  Decimal    @map("discount_value") @db.Decimal(10, 2)
+  minOrderAmount Decimal    @default(0) @map("min_order_amount") @db.Decimal(10, 2)
+  maxUses        Int        @default(0) @map("max_uses")
+  usedCount      Int        @default(0) @map("used_count")
+  isActive       Boolean    @default(true) @map("is_active")
+  validFrom      DateTime   @default(now()) @map("valid_from")
+  validTo        DateTime   @map("valid_to")
+  assignedToId   Int?       @map("assigned_to_id")
+  isGift         Boolean    @default(false) @map("is_gift")
+  autoGenerated  Boolean    @default(false) @map("auto_generated")
+  batchId        String?    @map("batch_id")
+  emailedAt      DateTime?  @map("emailed_at")
+  description    String     @default("")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  assignedTo     User?      @relation("AssignedCoupons", fields: [assignedToId], references: [id], onDelete: SetNull)
+  categories     Category[] @relation("CategoryCoupons")
+  orders         Order[]
+  notifications  UserNotification[]
+
+  @@map("store_coupon")
+}
+
+model DeliveryCharge {
+  id              Int      @id @default(autoincrement())
+  province        String   @default("Punjab")
+  city            String   @unique
+  charge          Decimal  @default(0) @db.Decimal(10, 2)
+  minOrderForFree Decimal  @default(0) @map("min_order_for_free") @db.Decimal(10, 2)
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  tiers           DeliveryChargeTier[]
+
+  @@map("store_deliverycharge")
+}
+
+model DeliveryChargeTier {
+  id               Int            @id @default(autoincrement())
+  deliveryChargeId Int            @map("delivery_charge_id")
+  minQuantity      Int            @map("min_quantity")
+  maxQuantity      Int?           @map("max_quantity")
+  charge           Decimal        @db.Decimal(10, 2)
+  deliveryCharge   DeliveryCharge @relation(fields: [deliveryChargeId], references: [id], onDelete: Cascade)
+
+  @@map("store_deliverychargetier")
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  userId          Int         @map("user_id")
+  customerName    String      @default("") @map("customer_name")
+  customerEmail   String      @default("") @map("customer_email")
+  shippingAddress String      @default("") @map("shipping_address")
+  city            String      @default("")
+  phone           String      @default("")
+  total           Decimal     @default(0) @db.Decimal(12, 2)
+  subtotal        Decimal     @default(0) @db.Decimal(12, 2)
+  discountAmount  Decimal     @default(0) @map("discount_amount") @db.Decimal(12, 2)
+  couponId        Int?        @map("coupon_id")
+  shippingCost    Decimal     @default(0) @map("shipping_cost") @db.Decimal(10, 2)
+  paidAmount      Decimal     @default(0) @map("paid_amount") @db.Decimal(12, 2)
+  dueAmount       Decimal     @default(0) @map("due_amount") @db.Decimal(12, 2)
+  paymentMethod   String      @default("") @map("payment_method")
+  paymentStatus   String      @default("Unpaid") @map("payment_status")
+  orderStatus     String      @default("Pending") @map("order_status")
+  trackingNumber  String      @default("") @map("tracking_number")
+  notes           String      @default("")
+  paymentProof    String      @default("") @map("payment_proof")
+  isPriority      Boolean     @default(false) @map("is_priority")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupon          Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  items           OrderItem[]
+
+  @@map("store_order")
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int      @map("order_id")
+  productId Int?     @map("product_id")
+  variantId Int?     @map("variant_id")
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+  total     Decimal  @default(0) @db.Decimal(10, 2)
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@map("store_orderitem")
+}
+
+model Setting {
+  key   String @id
+  value String @default("")
+
+  @@map("store_setting")
+}
+
+model Announcement {
+  id          Int      @id @default(autoincrement())
+  message     String
+  isFlashSale Boolean  @default(false) @map("is_flash_sale")
+  active      Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("store_announcement")
+}
+
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  name      String
+  email     String
+  subject   String
+  message   String
+  reply     String   @default("")
+  status    String   @default("new")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("store_contactmessage")
+}
+
+model UserNotification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  subject   String
+  body      String
+  isRead    Boolean  @default(false) @map("is_read")
+  couponId  Int?     @map("coupon_id")
+  reviewId  Int?     @map("review_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coupon    Coupon?  @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  review    Review?  @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+
+  @@map("store_usernotification")
+}
