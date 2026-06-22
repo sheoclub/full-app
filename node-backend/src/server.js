@@ -17,6 +17,9 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+// Vercel terminates HTTPS before Express, so trust proxy headers for secure cookies.
+app.set('trust proxy', 1);
+
 const normalizeOrigin = (value) => {
     try {
         return new URL(value).origin;
