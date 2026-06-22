@@ -1,7 +1,7 @@
 {
     "version": 2,
-    "installCommand": "npm install --prefix frontend && npm install --prefix node-backend",
-    "buildCommand": "npm run prisma:generate --prefix node-backend && npm run build --prefix frontend",
+    "installCommand": "npm install --include=dev --prefix frontend && npm install --include=dev --prefix node-backend",
+    "buildCommand": "npm --prefix node-backend run prisma:generate && npm --prefix frontend run build",
     "outputDirectory": "frontend/dist",
     "functions": {
         "api/index.js": {
