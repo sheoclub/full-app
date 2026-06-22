@@ -98,7 +98,8 @@ router.post('/cart/add/', asyncHandler(async (req, res) => {
     const newQty = Number(cart[key] || 0) + quantity;
     if (newQty > stock) throw new HttpError(400, 'Not enough stock');
     cart[key] = newQty;
-    res.json({ message: 'Item added to cart', cart_count: Object.values(cart).reduce((sum, qty) => sum + Number(qty), 0), cart });
+    req.session.cart = { ...cart };
+    res.json({ message: 'Item added to cart', cart_count: Object.values(req.session.cart).reduce((sum, qty) => sum + Number(qty), 0), cart: req.session.cart });
 }));
 
 router.post('/cart/update/', asyncHandler(async (req, res) => {
@@ -125,7 +126,8 @@ router.post('/cart/remove/:productId/', asyncHandler(async (req, res) => {
     const cart = getCart(req);
     const variantId = req.body.variant_id || req.query.variant_id;
     delete cart[cartKey(Number(req.params.productId), variantId ? Number(variantId) : null)];
-    res.json({ message: 'Item removed from cart', cart_count: Object.values(cart).reduce((sum, qty) => sum + Number(qty), 0) });
+    req.session.cart = { ...cart };
+    res.json({ message: 'Item removed from cart', cart_count: Object.values(req.session.cart).reduce((sum, qty) => sum + Number(qty), 0) });
 }));
 
 module.exports = { router, getCart, serializeCart, parseCartKey };
