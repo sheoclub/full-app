@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -55,6 +55,52 @@ import AdminDeliveryCharges from '@/pages/admin/AdminDeliveryCharges';
 import AdminCoupons from '@/pages/admin/AdminCoupons';
 import AdminSEO from '@/pages/admin/AdminSEO';
 
+const pageTitles: Record<string, string> = {
+  '/': 'Home',
+  '/shop': 'Shop',
+  '/about': 'About',
+  '/contact': 'Contact',
+  '/shipping-info': 'Shipping Info',
+  '/return-policy': 'Return Policy',
+  '/track-order': 'Track Order',
+  '/login': 'Login',
+  '/signup': 'Signup',
+  '/cart': 'Cart',
+  '/checkout': 'Checkout',
+  '/dashboard': 'Dashboard',
+  '/my-messages': 'My Messages',
+  '/my-inbox': 'My Inbox',
+  '/wishlist': 'Wishlist',
+  '/admin': 'Admin Dashboard',
+  '/admin/products': 'Admin Products',
+  '/admin/orders': 'Admin Orders',
+  '/admin/orders/create': 'Create Order',
+  '/admin/categories': 'Admin Categories',
+  '/admin/users': 'Admin Users',
+  '/admin/banners': 'Admin Banners',
+  '/admin/announcements': 'Admin Announcements',
+  '/admin/reviews': 'Admin Reviews',
+  '/admin/messages': 'Admin Messages',
+  '/admin/settings': 'Admin Settings',
+  '/admin/reports': 'Admin Reports',
+  '/admin/analytics': 'Admin Analytics',
+  '/admin/delivery-charges': 'Delivery Charges',
+  '/admin/seo': 'Admin SEO',
+  '/admin/payments': 'Admin Payments',
+  '/admin/coupons': 'Admin Coupons',
+};
+
+function titleForPath(pathname: string) {
+  if (pageTitles[pathname]) return pageTitles[pathname];
+  if (pathname.startsWith('/product/')) return 'Product Detail';
+  if (pathname.startsWith('/order/')) return 'Order Detail';
+  if (pathname.startsWith('/payment/')) return 'Payment';
+  if (pathname.startsWith('/invoice/')) return 'Invoice';
+  if (pathname.startsWith('/admin/orders/')) return 'Admin Order Detail';
+  if (pathname.startsWith('/admin/users/')) return 'Admin User Detail';
+  return 'Ladies Shoe Club';
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, initialLoading } = useAuthStore();
   if (initialLoading) return <LoadingSpinner fullPage text="Loading..." />;
@@ -73,6 +119,7 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   const { loadUser, isAuthenticated, initialLoading } = useAuthStore();
   const { fetchCart } = useCartStore();
+  const location = useLocation();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -80,6 +127,11 @@ export default function App() {
       fetchCart();
     }
   }, [isAuthenticated, loadUser, fetchCart]);
+
+  useEffect(() => {
+    const pageTitle = titleForPath(location.pathname);
+    document.title = pageTitle === 'Ladies Shoe Club' ? pageTitle : `${pageTitle} | Ladies Shoe Club`;
+  }, [location.pathname]);
 
   if (initialLoading) {
     return <LoadingSpinner fullPage text="Loading..." />;
