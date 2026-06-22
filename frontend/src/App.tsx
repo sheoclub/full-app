@@ -102,16 +102,18 @@ function titleForPath(pathname: string) {
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user, initialLoading } = useAuthStore();
+  const { isAuthenticated, initialLoading } = useAuthStore();
+  const location = useLocation();
   if (initialLoading) return <LoadingSpinner fullPage text="Loading..." />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   return <>{children}</>;
 }
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, initialLoading } = useAuthStore();
+  const location = useLocation();
   if (initialLoading) return <LoadingSpinner fullPage text="Loading..." />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   if (!user?.is_staff) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -124,8 +126,8 @@ export default function App() {
   useEffect(() => {
     if (isAuthenticated) {
       loadUser();
-      fetchCart();
     }
+    fetchCart();
   }, [isAuthenticated, loadUser, fetchCart]);
 
   useEffect(() => {

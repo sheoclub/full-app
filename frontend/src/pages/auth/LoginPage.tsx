@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
@@ -6,14 +6,17 @@ import toast from 'react-hot-toast';
 
 export default function LoginPage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login, isAuthenticated } = useAuthStore();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
 
+    const redirectTo = new URLSearchParams(location.search).get('redirect') || '/';
+
     useEffect(() => {
-        if (isAuthenticated) navigate('/dashboard', { replace: true });
-    }, [isAuthenticated, navigate]);
+        if (isAuthenticated) navigate(redirectTo, { replace: true });
+    }, [isAuthenticated, navigate, redirectTo]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -21,7 +24,7 @@ export default function LoginPage() {
         try {
             await login(email, password);
             toast.success('Welcome back!');
-            navigate('/');
+            navigate(redirectTo, { replace: true });
         } catch (err: any) {
             toast.error(err.message);
         } finally {

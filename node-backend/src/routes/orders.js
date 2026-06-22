@@ -4,7 +4,7 @@ const prisma = require('../prisma');
 const { asyncHandler, HttpError } = require('../utils/http');
 const { requireAuth } = require('../middleware/auth');
 const { upload, uploadedFileValue } = require('../utils/upload');
-const { getCart } = require('./cart');
+const { getCart, parseCartKey } = require('./cart');
 const { orderSerializer, couponSerializer } = require('../utils/serializers');
 
 const router = express.Router();
@@ -34,16 +34,31 @@ router.post('/checkout/validate-coupon/', asyncHandler(async (req, res) => {
 
 router.post('/checkout/', requireAuth, upload.single('payment_proof'), asyncHandler(async (req, res) => {
     const cart = getCart(req);
-    const ids = Object.keys(cart).map(Number).filter(Boolean);
-    if (!ids.length) throw new HttpError(400, 'Cart is empty');
-    const products = await prisma.product.findMany({ where: { id: { in: ids }, status: true } });
-    if (!products.length) throw new HttpError(400, 'No valid items in cart');
+    const cartEntries = Object.entries(cart)
+        .map(([key, qtyRaw]) => ({ ...parseCartKey(key), key, qty: Number(qtyRaw) }))
+        .filter((item) => item.productId && item.qty > 0);
+    if (!cartEntries.length) throw new HttpError(400, 'Cart is empty');
+
+    const productIds = [...new Set(cartEntries.map((item) => item.productId))];
+    const variantIds = [...new Set(cartEntries.map((item) => item.variantId).filter(Boolean))];
+    const [products, variants] = await Promise.all([
+        prisma.product.findMany({ where: { id: { in: productIds }, status: true } }),
+        variantIds.length
+            ? prisma.productVariant.findMany({ where: { id: { in: variantIds }, isActive: true } })
+            : Promise.resolve([]),
+    ]);
+    const productById = new Map(products.map((item) => [item.id, item]));
+    const variantById = new Map(variants.map((item) => [item.id, item]));
     let subtotal = new Prisma.Decimal(0);
-    const items = products.map((product) => {
-        const qty = Number(cart[String(product.id)] || 0);
-        subtotal = subtotal.add(new Prisma.Decimal(product.price).mul(qty));
-        return { product, qty };
-    });
+    const items = cartEntries.map((entry) => {
+        const product = productById.get(entry.productId);
+        const variant = entry.variantId ? variantById.get(entry.variantId) : null;
+        if (!product || (entry.variantId && (!variant || variant.productId !== product.id))) return null;
+        const price = variant?.priceOverride || product.price;
+        subtotal = subtotal.add(new Prisma.Decimal(price).mul(entry.qty));
+        return { product, variant, qty: entry.qty, price };
+    }).filter(Boolean);
+    if (!items.length) throw new HttpError(400, 'No valid items in cart');
     let paymentMethod = req.body.payment_method || 'Cash on Delivery';
     if (paymentMethod === 'bank_transfer') paymentMethod = 'Bank Transfer';
     if (paymentMethod === 'online') paymentMethod = 'Online Payment';
@@ -103,10 +118,14 @@ router.post('/checkout/', requireAuth, upload.single('payment_proof'), asyncHand
         });
         await tx.order.update({ where: { id: created.id }, data: { trackingNumber: `SHC-${created.id}-${Math.floor(Date.now() / 1000)}` } });
         for (const item of items) {
-            await tx.orderItem.create({ data: { orderId: created.id, productId: item.product.id, quantity: item.qty, price: item.product.price, total: new Prisma.Decimal(item.product.price).mul(item.qty) } });
-            await tx.product.update({ where: { id: item.product.id }, data: { stock: { decrement: item.qty } } });
+            await tx.orderItem.create({ data: { orderId: created.id, productId: item.product.id, variantId: item.variant?.id, quantity: item.qty, price: item.price, total: new Prisma.Decimal(item.price).mul(item.qty) } });
+            if (item.variant) {
+                await tx.productVariant.update({ where: { id: item.variant.id }, data: { stock: { decrement: item.qty } } });
+            } else {
+                await tx.product.update({ where: { id: item.product.id }, data: { stock: { decrement: item.qty } } });
+            }
         }
-        return tx.order.findUnique({ where: { id: created.id }, include: { user: true, coupon: true, items: { include: { product: true } } } });
+        return tx.order.findUnique({ where: { id: created.id }, include: { user: true, coupon: true, items: { include: { product: true, variant: true } } } });
     });
     req.session.cart = {};
     res.status(201).json(orderSerializer(order));

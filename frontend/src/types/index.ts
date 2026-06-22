@@ -176,10 +176,12 @@ export interface CartItem {
     quantity: number;
     total_price: string;
     subtotal: string;
+    key?: string;
     variant?: {
         id: number;
         size: string;
         color: string;
+        color_code?: string;
     };
 }
 

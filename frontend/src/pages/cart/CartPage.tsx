@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trash2, ShoppingBag, Minus, Plus, ArrowLeft } from 'lucide-react';
 import { CartItemSkeleton } from '@/components/ui/Skeleton';
@@ -16,7 +15,7 @@ export default function CartPage() {
 
     const subtotal = items.reduce((sum, item) => sum + Number(item.total_price || item.product.price) * item.quantity, 0);
 
-    const handleQuantityChange = async (productId: number, newQty: number, index: number) => {
+    const handleQuantityChange = async (productId: number, newQty: number, index: number, variantId?: number) => {
         if (newQty < 1) return;
         const stock = items[index].product.stock ?? 99;
         if (newQty > stock) {
@@ -26,11 +25,11 @@ export default function CartPage() {
         const updated = items.map((item, i) =>
             i === index ? { ...item, quantity: newQty } : item
         );
-        await updateCart(updated.map((item) => ({ product_id: item.product.id, quantity: item.quantity })));
+        await updateCart(updated.map((item) => ({ product_id: item.product.id, variant_id: item.variant?.id, quantity: item.quantity })));
     };
 
-    const handleRemove = async (productId: number) => {
-        await removeFromCart(productId);
+    const handleRemove = async (productId: number, variantId?: number) => {
+        await removeFromCart(productId, variantId);
         toast.success('Item removed from cart');
     };
 
@@ -113,7 +112,7 @@ export default function CartPage() {
                                             )}
                                         </div>
                                         <button
-                                            onClick={() => handleRemove(item.product.id)}
+                                            onClick={() => handleRemove(item.product.id, item.variant?.id)}
                                             className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                         >
                                             <Trash2 className="w-4 h-4" />
@@ -122,7 +121,7 @@ export default function CartPage() {
                                     <div className="flex items-center justify-between mt-4">
                                         <div className="flex items-center gap-2">
                                             <button
-                                                onClick={() => handleQuantityChange(item.product.id, item.quantity - 1, index)}
+                                                onClick={() => handleQuantityChange(item.product.id, item.quantity - 1, index, item.variant?.id)}
                                                 disabled={item.quantity <= 1}
                                                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >
@@ -130,7 +129,7 @@ export default function CartPage() {
                                             </button>
                                             <span className="w-10 text-center font-medium">{item.quantity}</span>
                                             <button
-                                                onClick={() => handleQuantityChange(item.product.id, item.quantity + 1, index)}
+                                                onClick={() => handleQuantityChange(item.product.id, item.quantity + 1, index, item.variant?.id)}
                                                 disabled={item.quantity >= (item.product.stock ?? 99)}
                                                 className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >

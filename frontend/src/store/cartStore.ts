@@ -7,8 +7,8 @@ interface CartState {
     isLoading: boolean;
     fetchCart: () => Promise<void>;
     addToCart: (productId: number, quantity?: number, variantId?: number) => Promise<void>;
-    updateCart: (items: { product_id: number; quantity: number }[]) => Promise<void>;
-    removeFromCart: (productId: number) => Promise<void>;
+    updateCart: (items: { product_id: number; quantity: number; variant_id?: number }[]) => Promise<void>;
+    removeFromCart: (productId: number, variantId?: number) => Promise<void>;
     clearCart: () => void;
 }
 
@@ -58,10 +58,10 @@ export const useCartStore = create<CartState>((set) => ({
         }
     },
 
-    removeFromCart: async (productId) => {
+    removeFromCart: async (productId, variantId) => {
         set({ isLoading: true });
         try {
-            await api.post(`/cart/remove/${productId}/`);
+            await api.post(`/cart/remove/${productId}/`, { variant_id: variantId });
             // Re-fetch full cart after removing
             const { data } = await api.get('/cart/');
             set({ cart: data, isLoading: false });
