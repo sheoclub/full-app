@@ -1,7 +1,18 @@
-import { ArrowLeft, Shield, RotateCcw, AlertTriangle, CheckCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, Shield, RotateCcw, AlertTriangle, CheckCircle, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import api from '@/lib/api';
+import type { SiteSettings } from '@/types';
 
 export default function ReturnPolicyPage() {
+    const [settings, setSettings] = useState<SiteSettings | null>(null);
+
+    useEffect(() => {
+        api.get('/settings/')
+            .then((res) => setSettings(res.data))
+            .catch(() => { });
+    }, []);
+
     return (
         <div className="min-h-screen">
             <section className="relative bg-gradient-to-r from-blue-600 to-indigo-700 py-16">
@@ -127,6 +138,10 @@ export default function ReturnPolicyPage() {
                             <li className="flex items-start gap-2">
                                 <span className="text-blue-600 mt-1">•</span>
                                 Store credit is issued immediately upon approval if preferred.
+                            </li>
+                            <li className="flex items-start gap-2">
+                                <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                For refund requests under our 7-day return policy, please visit our outlet at {settings?.contact_address || 'the address listed on our website'} with a valid reason and the item in eligible condition.
                             </li>
                         </ul>
                     </div>
