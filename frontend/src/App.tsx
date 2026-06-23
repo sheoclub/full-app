@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useAuthStore } from '@/store/authStore';
@@ -6,6 +7,8 @@ import { useCartStore } from '@/store/cartStore';
 import PublicLayout from '@/components/layout/PublicLayout';
 import AdminLayout from '@/components/layout/AdminLayout';
 import UserLayout from '@/components/layout/UserLayout';
+import api from '@/lib/api';
+import type { SiteSettings } from '@/types';
 
 // Public Pages
 import HomePage from '@/pages/public/HomePage';
@@ -55,50 +58,64 @@ import AdminDeliveryCharges from '@/pages/admin/AdminDeliveryCharges';
 import AdminCoupons from '@/pages/admin/AdminCoupons';
 import AdminSEO from '@/pages/admin/AdminSEO';
 
-const pageTitles: Record<string, string> = {
-  '/': 'Home',
-  '/shop': 'Shop',
-  '/about': 'About',
-  '/contact': 'Contact',
-  '/shipping-info': 'Shipping Info',
-  '/return-policy': 'Return Policy',
-  '/track-order': 'Track Order',
-  '/login': 'Login',
-  '/signup': 'Signup',
-  '/cart': 'Cart',
-  '/checkout': 'Checkout',
-  '/dashboard': 'Dashboard',
-  '/my-messages': 'My Messages',
-  '/my-inbox': 'My Inbox',
-  '/wishlist': 'Wishlist',
-  '/admin': 'Admin Dashboard',
-  '/admin/products': 'Admin Products',
-  '/admin/orders': 'Admin Orders',
-  '/admin/orders/create': 'Create Order',
-  '/admin/categories': 'Admin Categories',
-  '/admin/users': 'Admin Users',
-  '/admin/banners': 'Admin Banners',
-  '/admin/announcements': 'Admin Announcements',
-  '/admin/reviews': 'Admin Reviews',
-  '/admin/messages': 'Admin Messages',
-  '/admin/settings': 'Admin Settings',
-  '/admin/reports': 'Admin Reports',
-  '/admin/analytics': 'Admin Analytics',
-  '/admin/delivery-charges': 'Delivery Charges',
-  '/admin/seo': 'Admin SEO',
-  '/admin/payments': 'Admin Payments',
-  '/admin/coupons': 'Admin Coupons',
+const DEFAULT_SITE_TITLE = 'Shoe Club Pakistan | Ladies Shoes Online';
+const DEFAULT_META_DESCRIPTION = 'Shop stylish ladies shoes online in Pakistan at Shoe Club. Discover heels, sandals, pumps, flats, and everyday footwear with reliable delivery.';
+const DEFAULT_META_KEYWORDS = 'ladies shoes, women shoes Pakistan, heels, sandals, pumps, flats, footwear online';
+const DEFAULT_SITE_URL = 'https://sheoclub.vercel.app';
+
+interface PageMeta {
+  title: string;
+  description: string;
+}
+
+const pageMeta: Record<string, PageMeta> = {
+  '/': {
+    title: DEFAULT_SITE_TITLE,
+    description: DEFAULT_META_DESCRIPTION,
+  },
+  '/shop': {
+    title: 'Shop Ladies Shoes Online | Shoe Club Pakistan',
+    description: 'Browse ladies shoes, heels, sandals, pumps, flats, and new arrivals online at Shoe Club Pakistan.',
+  },
+  '/about': {
+    title: 'About Shoe Club Pakistan',
+    description: 'Learn about Shoe Club Pakistan and our collection of stylish, comfortable ladies footwear.',
+  },
+  '/contact': {
+    title: 'Contact Shoe Club Pakistan',
+    description: 'Contact Shoe Club Pakistan for orders, returns, delivery questions, and customer support.',
+  },
+  '/shipping-info': {
+    title: 'Shipping Information | Shoe Club Pakistan',
+    description: 'Find delivery and shipping information for online shoe orders from Shoe Club Pakistan.',
+  },
+  '/return-policy': {
+    title: 'Return Policy | Shoe Club Pakistan',
+    description: 'Read Shoe Club Pakistan return policy for eligible 7-day returns, outlet visits, and WhatsApp support.',
+  },
+  '/track-order': {
+    title: 'Track Your Order | Shoe Club Pakistan',
+    description: 'Track your Shoe Club Pakistan order status online with your order details.',
+  },
 };
 
-function titleForPath(pathname: string) {
-  if (pageTitles[pathname]) return pageTitles[pathname];
-  if (pathname.startsWith('/product/')) return 'Product Detail';
-  if (pathname.startsWith('/order/')) return 'Order Detail';
-  if (pathname.startsWith('/payment/')) return 'Payment';
-  if (pathname.startsWith('/invoice/')) return 'Invoice';
-  if (pathname.startsWith('/admin/orders/')) return 'Admin Order Detail';
-  if (pathname.startsWith('/admin/users/')) return 'Admin User Detail';
-  return 'Ladies Shoe Club';
+function metaForPath(pathname: string, settings: SiteSettings | null): PageMeta {
+  if (pageMeta[pathname]) {
+    return {
+      title: pathname === '/' ? settings?.site_title || pageMeta[pathname].title : pageMeta[pathname].title,
+      description: pathname === '/' ? settings?.meta_description || pageMeta[pathname].description : pageMeta[pathname].description,
+    };
+  }
+  if (pathname.startsWith('/product/')) {
+    return {
+      title: 'Product Detail | Shoe Club Pakistan',
+      description: 'View product details, price, sizes, colors, and availability at Shoe Club Pakistan.',
+    };
+  }
+  return {
+    title: settings?.site_title || DEFAULT_SITE_TITLE,
+    description: settings?.meta_description || DEFAULT_META_DESCRIPTION,
+  };
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -122,6 +139,7 @@ export default function App() {
   const { loadUser, isAuthenticated, initialLoading } = useAuthStore();
   const { fetchCart } = useCartStore();
   const location = useLocation();
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -131,69 +149,94 @@ export default function App() {
   }, [isAuthenticated, loadUser, fetchCart]);
 
   useEffect(() => {
-    const pageTitle = titleForPath(location.pathname);
-    document.title = pageTitle === 'Ladies Shoe Club' ? pageTitle : `${pageTitle} | Ladies Shoe Club`;
-  }, [location.pathname]);
+    api.get('/settings/')
+      .then((res) => setSettings(res.data))
+      .catch(() => setSettings(null));
+  }, []);
 
   if (initialLoading) {
     return <LoadingSpinner fullPage text="Loading..." />;
   }
 
+  const currentMeta = metaForPath(location.pathname, settings);
+  const canonicalBase = settings?.canonical_url || DEFAULT_SITE_URL;
+  const canonicalUrl = `${canonicalBase.replace(/\/$/, '')}${location.pathname === '/' ? '/' : location.pathname}`;
+  const ogTitle = settings?.og_title || currentMeta.title;
+  const ogDescription = settings?.og_description || currentMeta.description;
+
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route element={<PublicLayout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/shop" element={<ShopPage />} />
-        <Route path="/product/:slug" element={<ProductDetailPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/shipping-info" element={<ShippingInfoPage />} />
-        <Route path="/return-policy" element={<ReturnPolicyPage />} />
-        <Route path="/track-order" element={<TrackOrderPage />} />
+    <>
+      <Helmet>
+        <title>{currentMeta.title}</title>
+        <meta name="description" content={currentMeta.description} />
+        <meta name="keywords" content={settings?.meta_keywords || DEFAULT_META_KEYWORDS} />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        {settings?.og_image && <meta property="og:image" content={settings.og_image} />}
+        <meta name="twitter:card" content={settings?.og_image ? 'summary_large_image' : 'summary'} />
+        <meta name="twitter:title" content={ogTitle} />
+        <meta name="twitter:description" content={ogDescription} />
+        {settings?.og_image && <meta name="twitter:image" content={settings.og_image} />}
+      </Helmet>
+      <Routes>
+        {/* Public Routes */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/shop" element={<ShopPage />} />
+          <Route path="/product/:slug" element={<ProductDetailPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/shipping-info" element={<ShippingInfoPage />} />
+          <Route path="/return-policy" element={<ReturnPolicyPage />} />
+          <Route path="/track-order" element={<TrackOrderPage />} />
 
-        {/* Auth Routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+          {/* Auth Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
 
-        {/* Cart Routes */}
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
-        <Route path="/order/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
-        <Route path="/payment/:id" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
-        <Route path="/invoice/:id" element={<ProtectedRoute><InvoicePage /></ProtectedRoute>} />
+          {/* Cart Routes */}
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+          <Route path="/order/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
+          <Route path="/payment/:id" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+          <Route path="/invoice/:id" element={<ProtectedRoute><InvoicePage /></ProtectedRoute>} />
 
-        {/* User Routes */}
-        <Route path="/dashboard" element={<ProtectedRoute><UserLayout><DashboardPage /></UserLayout></ProtectedRoute>} />
-        <Route path="/my-messages" element={<ProtectedRoute><UserLayout><MyMessagesPage /></UserLayout></ProtectedRoute>} />
-        <Route path="/my-inbox" element={<ProtectedRoute><UserLayout><MyInboxPage /></UserLayout></ProtectedRoute>} />
-        <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
-      </Route>
+          {/* User Routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><UserLayout><DashboardPage /></UserLayout></ProtectedRoute>} />
+          <Route path="/my-messages" element={<ProtectedRoute><UserLayout><MyMessagesPage /></UserLayout></ProtectedRoute>} />
+          <Route path="/my-inbox" element={<ProtectedRoute><UserLayout><MyInboxPage /></UserLayout></ProtectedRoute>} />
+          <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
+        </Route>
 
-      {/* Admin Routes — mount inside PublicLayout for shared header/footer, or standalone AdminLayout */}
-      <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-        <Route index element={<AdminDashboard />} />
-        <Route path="products" element={<AdminProducts />} />
-        <Route path="orders/create" element={<AdminCreateOrder />} />
-        <Route path="categories" element={<AdminCategories />} />
-        <Route path="orders" element={<AdminOrders />} />
-        <Route path="orders/:id" element={<AdminOrderDetail />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="users/:id" element={<AdminUserDetail />} />
-        <Route path="banners" element={<AdminBanners />} />
-        <Route path="announcements" element={<AdminAnnouncements />} />
-        <Route path="reviews" element={<AdminReviews />} />
-        <Route path="messages" element={<AdminContactMessages />} />
-        <Route path="settings" element={<AdminSettings />} />
-        <Route path="reports" element={<AdminReports />} />
-        <Route path="analytics" element={<AdminAnalytics />} />
-        <Route path="delivery-charges" element={<AdminDeliveryCharges />} />
-        <Route path="seo" element={<AdminSEO />} />
-        <Route path="payments" element={<AdminPayments />} />
-        <Route path="coupons" element={<AdminCoupons />} />
-      </Route>
+        {/* Admin Routes — mount inside PublicLayout for shared header/footer, or standalone AdminLayout */}
+        <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+          <Route index element={<AdminDashboard />} />
+          <Route path="products" element={<AdminProducts />} />
+          <Route path="orders/create" element={<AdminCreateOrder />} />
+          <Route path="categories" element={<AdminCategories />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="orders/:id" element={<AdminOrderDetail />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="users/:id" element={<AdminUserDetail />} />
+          <Route path="banners" element={<AdminBanners />} />
+          <Route path="announcements" element={<AdminAnnouncements />} />
+          <Route path="reviews" element={<AdminReviews />} />
+          <Route path="messages" element={<AdminContactMessages />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="reports" element={<AdminReports />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="delivery-charges" element={<AdminDeliveryCharges />} />
+          <Route path="seo" element={<AdminSEO />} />
+          <Route path="payments" element={<AdminPayments />} />
+          <Route path="coupons" element={<AdminCoupons />} />
+        </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }

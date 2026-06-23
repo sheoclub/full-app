@@ -178,9 +178,19 @@ export default function ProductDetailPage() {
         <div>
             {/* SEO Meta Tags */}
             <Helmet>
-                <title>{product.meta_title || product.name} | My Store</title>
+                <title>{product.meta_title || `${product.name} | Shoe Club Pakistan`}</title>
                 <meta name="description" content={product.meta_description || product.description} />
-                <meta name="keywords" content={product.meta_keywords || ''} />
+                <meta name="keywords" content={product.meta_keywords || `${product.name}, ladies shoes, women footwear Pakistan`} />
+                <link rel="canonical" href={`https://sheoclub.vercel.app/product/${product.slug}`} />
+                <meta property="og:type" content="product" />
+                <meta property="og:title" content={product.meta_title || `${product.name} | Shoe Club Pakistan`} />
+                <meta property="og:description" content={product.meta_description || product.description} />
+                <meta property="og:url" content={`https://sheoclub.vercel.app/product/${product.slug}`} />
+                {allImages[0]?.image && <meta property="og:image" content={getImageUrl(allImages[0].image)} />}
+                <meta name="twitter:card" content={allImages[0]?.image ? 'summary_large_image' : 'summary'} />
+                <meta name="twitter:title" content={product.meta_title || `${product.name} | Shoe Club Pakistan`} />
+                <meta name="twitter:description" content={product.meta_description || product.description} />
+                {allImages[0]?.image && <meta name="twitter:image" content={getImageUrl(allImages[0].image)} />}
             </Helmet>
 
             {/* Breadcrumb */}
