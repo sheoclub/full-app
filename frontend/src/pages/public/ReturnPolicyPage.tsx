@@ -141,7 +141,7 @@ export default function ReturnPolicyPage() {
                             </li>
                             <li className="flex items-start gap-2">
                                 <MapPin className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                                For refund requests under our 7-day return policy, please visit our outlet at {settings?.contact_address || 'the address listed on our website'} with a valid reason and the item in eligible condition.
+                                To request a return under our 7-day policy, please contact us on WhatsApp at {settings?.contact_phone || 'the number listed on our website'} or visit our outlet at {settings?.contact_address || 'the address listed on our website'} with a valid reason and the item in eligible condition.
                             </li>
                         </ul>
                     </div>
