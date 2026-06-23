@@ -12,6 +12,18 @@ interface SEOForm {
     og_description: string;
     canonical_url: string;
     google_analytics_id: string;
+    shop_title: string;
+    shop_description: string;
+    about_title: string;
+    about_description: string;
+    contact_title: string;
+    contact_description: string;
+    shipping_title: string;
+    shipping_description: string;
+    return_title: string;
+    return_description: string;
+    track_title: string;
+    track_description: string;
 }
 
 const DEFAULT_FORM: SEOForm = {
@@ -23,7 +35,28 @@ const DEFAULT_FORM: SEOForm = {
     og_description: '',
     canonical_url: '',
     google_analytics_id: '',
+    shop_title: '',
+    shop_description: '',
+    about_title: '',
+    about_description: '',
+    contact_title: '',
+    contact_description: '',
+    shipping_title: '',
+    shipping_description: '',
+    return_title: '',
+    return_description: '',
+    track_title: '',
+    track_description: '',
 };
+
+const PAGE_SEO_FIELDS = [
+    { label: 'Shop Page', title: 'shop_title', description: 'shop_description' },
+    { label: 'About Page', title: 'about_title', description: 'about_description' },
+    { label: 'Contact Page', title: 'contact_title', description: 'contact_description' },
+    { label: 'Shipping Info Page', title: 'shipping_title', description: 'shipping_description' },
+    { label: 'Return Policy Page', title: 'return_title', description: 'return_description' },
+    { label: 'Track Order Page', title: 'track_title', description: 'track_description' },
+] as const;
 
 interface AnalysisItem {
     label: string;
@@ -245,6 +278,36 @@ export default function AdminSEO() {
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                                 />
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                        <h2 className="text-lg font-semibold text-gray-800 mb-4">Public Page SEO</h2>
+                        <p className="text-sm text-gray-500 mb-4">Control title and meta description for main Google-indexed pages. Leave blank to use safe defaults.</p>
+                        <div className="space-y-5">
+                            {PAGE_SEO_FIELDS.map((field) => (
+                                <div key={field.title} className="border border-gray-100 rounded-lg p-4 bg-gray-50/50">
+                                    <h3 className="text-sm font-semibold text-gray-800 mb-3">{field.label}</h3>
+                                    <div className="space-y-3">
+                                        <input
+                                            type="text"
+                                            name={field.title}
+                                            value={form[field.title]}
+                                            onChange={handleChange}
+                                            placeholder={`${field.label} title for Google`}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                        />
+                                        <textarea
+                                            name={field.description}
+                                            value={form[field.description]}
+                                            onChange={handleChange}
+                                            rows={2}
+                                            placeholder={`${field.label} meta description`}
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 

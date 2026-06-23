@@ -68,42 +68,57 @@ interface PageMeta {
   description: string;
 }
 
-const pageMeta: Record<string, PageMeta> = {
+const pageMeta: Record<string, PageMeta & { titleKey?: string; descriptionKey?: string }> = {
   '/': {
     title: DEFAULT_SITE_TITLE,
     description: DEFAULT_META_DESCRIPTION,
+    titleKey: 'site_title',
+    descriptionKey: 'meta_description',
   },
   '/shop': {
     title: 'Shop Ladies Shoes Online | Shoe Club Pakistan',
     description: 'Browse ladies shoes, heels, sandals, pumps, flats, and new arrivals online at Shoe Club Pakistan.',
+    titleKey: 'shop_title',
+    descriptionKey: 'shop_description',
   },
   '/about': {
     title: 'About Shoe Club Pakistan',
     description: 'Learn about Shoe Club Pakistan and our collection of stylish, comfortable ladies footwear.',
+    titleKey: 'about_title',
+    descriptionKey: 'about_description',
   },
   '/contact': {
     title: 'Contact Shoe Club Pakistan',
     description: 'Contact Shoe Club Pakistan for orders, returns, delivery questions, and customer support.',
+    titleKey: 'contact_title',
+    descriptionKey: 'contact_description',
   },
   '/shipping-info': {
     title: 'Shipping Information | Shoe Club Pakistan',
     description: 'Find delivery and shipping information for online shoe orders from Shoe Club Pakistan.',
+    titleKey: 'shipping_title',
+    descriptionKey: 'shipping_description',
   },
   '/return-policy': {
     title: 'Return Policy | Shoe Club Pakistan',
     description: 'Read Shoe Club Pakistan return policy for eligible 7-day returns, outlet visits, and WhatsApp support.',
+    titleKey: 'return_title',
+    descriptionKey: 'return_description',
   },
   '/track-order': {
     title: 'Track Your Order | Shoe Club Pakistan',
     description: 'Track your Shoe Club Pakistan order status online with your order details.',
+    titleKey: 'track_title',
+    descriptionKey: 'track_description',
   },
 };
 
 function metaForPath(pathname: string, settings: SiteSettings | null): PageMeta {
-  if (pageMeta[pathname]) {
+  const routeMeta = pageMeta[pathname];
+  if (routeMeta) {
     return {
-      title: pathname === '/' ? settings?.site_title || pageMeta[pathname].title : pageMeta[pathname].title,
-      description: pathname === '/' ? settings?.meta_description || pageMeta[pathname].description : pageMeta[pathname].description,
+      title: (routeMeta.titleKey ? settings?.[routeMeta.titleKey] : '') || routeMeta.title,
+      description: (routeMeta.descriptionKey ? settings?.[routeMeta.descriptionKey] : '') || routeMeta.description,
     };
   }
   if (pathname.startsWith('/product/')) {
