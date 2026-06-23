@@ -53,7 +53,7 @@ export default function AdminPayments() {
 
     /** Show verification dialog with amount input */
     const openVerifyDialog = (order: Order) => {
-        setVerifyModal({ order, paidAmount: order.total || '0' });
+        setVerifyModal({ order, paidAmount: order.due_amount || order.total || '0' });
     };
 
     /** Submit verification — sends typed paid_amount to backend */
@@ -69,8 +69,12 @@ export default function AdminPayments() {
         try {
             await api.post(`/admin/orders/${order.id}/status/`, {
                 paid_amount: paidAmount,
+                payment_amount_type: order.payment_status === 'Partial' ? 'additional' : 'total',
             });
-            const label = paidNum >= parseFloat(order.total) ? 'Paid in full' : paidNum > 0 ? 'Partial payment' : 'Rejected';
+            const remainingTotal = order.payment_status === 'Partial'
+                ? parseFloat(order.due_amount || '0')
+                : parseFloat(order.total);
+            const label = paidNum >= remainingTotal ? 'Paid in full' : paidNum > 0 ? 'Partial payment' : 'Rejected';
             toast.success(`Payment verified — ${label}`);
             setVerifyModal(null);
             fetchOrders();
@@ -88,6 +92,7 @@ export default function AdminPayments() {
         try {
             await api.post(`/admin/orders/${orderId}/status/`, {
                 paid_amount: '0',
+                payment_amount_type: 'total',
             });
             toast.success('Payment rejected — order cancelled');
             fetchOrders();
@@ -351,19 +356,19 @@ export default function AdminPayments() {
                             </div>
 
                             <div className="text-xs text-gray-500 space-y-1 bg-gray-50 rounded-lg p-3">
-                                <p>{'\u2022'} Amount {'>='} Total : <strong>Paid in Full</strong> - order moves to <strong>Pending</strong></p>
-                                <p>{'\u2022'} 0 {'<'} Amount {'<'} Total : <strong>Partial Payment</strong></p>
-                                <p>{'\u2022'} Amount = 0 : <strong>Rejected</strong> - order cancelled</p>
+                                <p>{'\u2022'} Amount {'>='} remaining due: <strong>Paid</strong> - order moves to <strong>Processing</strong></p>
+                                <p>{'\u2022'} 0 {'<'} Amount {'<'} remaining due: <strong>Partial Payment</strong> - order stays <strong>Pending</strong></p>
+                                <p>{'\u2022'} Amount = 0: <strong>Rejected</strong> - order cancelled</p>
                             </div>
 
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => {
-                                        setVerifyModal({ ...verifyModal, paidAmount: verifyModal.order.total });
+                                        setVerifyModal({ ...verifyModal, paidAmount: verifyModal.order.due_amount || verifyModal.order.total });
                                     }}
                                     className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
                                 >
-                                    Full Amount ({formatCurrency(verifyModal.order.total)})
+                                    Clear Due ({formatCurrency(verifyModal.order.due_amount || verifyModal.order.total)})
                                 </button>
                                 <button
                                     onClick={handleVerifySubmit}
