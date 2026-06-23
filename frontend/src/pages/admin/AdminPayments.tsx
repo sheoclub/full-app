@@ -51,9 +51,10 @@ export default function AdminPayments() {
         fetchOrders();
     }, [fetchOrders]);
 
-    /** Show verification dialog with amount input */
+    /** Show verification dialog with only the amount still pending for verification. */
     const openVerifyDialog = (order: Order) => {
-        setVerifyModal({ order, paidAmount: order.due_amount || order.total || '0' });
+        const pendingDue = order.payment_status === 'Partial' ? order.due_amount : order.total;
+        setVerifyModal({ order, paidAmount: pendingDue || '0' });
     };
 
     /** Submit verification — sends typed paid_amount to backend */
@@ -71,10 +72,10 @@ export default function AdminPayments() {
                 paid_amount: paidAmount,
                 payment_amount_type: order.payment_status === 'Partial' ? 'additional' : 'total',
             });
-            const remainingTotal = order.payment_status === 'Partial'
+            const pendingDue = order.payment_status === 'Partial'
                 ? parseFloat(order.due_amount || '0')
                 : parseFloat(order.total);
-            const label = paidNum >= remainingTotal ? 'Paid in full' : paidNum > 0 ? 'Partial payment' : 'Rejected';
+            const label = paidNum >= pendingDue ? 'Pending dues cleared' : paidNum > 0 ? 'Partial payment' : 'Rejected';
             toast.success(`Payment verified — ${label}`);
             setVerifyModal(null);
             fetchOrders();
@@ -335,14 +336,14 @@ export default function AdminPayments() {
                             Verify Payment — Order #{verifyModal.order.id}
                         </h3>
                         <p className="text-sm text-gray-500 mb-4">
-                            {verifyModal.order.user_name} · {verifyModal.order.payment_method} · Total: {formatCurrency(verifyModal.order.total)}
+                            {verifyModal.order.user_name} · {verifyModal.order.payment_method} · Pending dues: {formatCurrency(verifyModal.order.payment_status === 'Partial' ? (verifyModal.order.due_amount || '0') : verifyModal.order.total)}
                         </p>
 
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     <DollarSign className="w-4 h-4 inline mr-1" />
-                                    Amount Paid by Customer
+                                    Pending Due Amount Paid
                                 </label>
                                 <input
                                     type="number"
@@ -356,19 +357,20 @@ export default function AdminPayments() {
                             </div>
 
                             <div className="text-xs text-gray-500 space-y-1 bg-gray-50 rounded-lg p-3">
-                                <p>{'\u2022'} Amount {'>='} remaining due: <strong>Paid</strong> - order moves to <strong>Processing</strong></p>
-                                <p>{'\u2022'} 0 {'<'} Amount {'<'} remaining due: <strong>Partial Payment</strong> - order stays <strong>Pending</strong></p>
+                                <p>{'\u2022'} Enter only the pending dues amount, not the full order total.</p>
+                                <p>{'\u2022'} Amount {'>='} pending dues: <strong>Paid</strong> - order moves to <strong>Processing</strong></p>
+                                <p>{'\u2022'} 0 {'<'} Amount {'<'} pending dues: <strong>Partial Payment</strong> - order stays <strong>Pending</strong></p>
                                 <p>{'\u2022'} Amount = 0: <strong>Rejected</strong> - order cancelled</p>
                             </div>
 
                             <div className="flex gap-2">
                                 <button
                                     onClick={() => {
-                                        setVerifyModal({ ...verifyModal, paidAmount: verifyModal.order.due_amount || verifyModal.order.total });
+                                        setVerifyModal({ ...verifyModal, paidAmount: verifyModal.order.payment_status === 'Partial' ? (verifyModal.order.due_amount || '0') : verifyModal.order.total });
                                     }}
                                     className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
                                 >
-                                    Clear Due ({formatCurrency(verifyModal.order.due_amount || verifyModal.order.total)})
+                                    Clear Pending Dues ({formatCurrency(verifyModal.order.payment_status === 'Partial' ? (verifyModal.order.due_amount || '0') : verifyModal.order.total)})
                                 </button>
                                 <button
                                     onClick={handleVerifySubmit}

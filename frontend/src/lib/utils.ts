@@ -40,15 +40,15 @@ export function getImageUrl(url: string | null | undefined, fallback = 'https://
 }
 
 export const ORDER_STATUSES: Record<string, { label: string; color: string }> = {
-    pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
-    confirmed: { label: 'Confirmed', color: 'bg-blue-100 text-blue-800' },
-    processing: { label: 'Processing', color: 'bg-indigo-100 text-indigo-800' },
-    shipped: { label: 'Shipped', color: 'bg-purple-100 text-purple-800' },
-    delivered: { label: 'Delivered', color: 'bg-green-100 text-green-800' },
-    cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800' },
-    returned: { label: 'Returned', color: 'bg-orange-100 text-orange-800' },
-    refunded: { label: 'Refunded', color: 'bg-pink-100 text-pink-800' },
-    completed: { label: 'Completed', color: 'bg-teal-100 text-teal-800' },
+    Pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
+    Confirmed: { label: 'Confirmed', color: 'bg-blue-100 text-blue-800' },
+    Processing: { label: 'Processing', color: 'bg-indigo-100 text-indigo-800' },
+    Shipped: { label: 'Shipped', color: 'bg-purple-100 text-purple-800' },
+    Delivered: { label: 'Delivered', color: 'bg-green-100 text-green-800' },
+    Cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800' },
+    Returned: { label: 'Returned', color: 'bg-orange-100 text-orange-800' },
+    Refunded: { label: 'Refunded', color: 'bg-pink-100 text-pink-800' },
+    Completed: { label: 'Completed', color: 'bg-teal-100 text-teal-800' },
 };
 
 export const PAYMENT_STATUSES: Record<string, { label: string; color: string }> = {
@@ -71,6 +71,7 @@ export const PAYMENT_METHODS: Record<string, string> = {
 
 export function getStatusBadge(status: string, type: 'order' | 'payment'): { label: string; className: string } {
     const map = type === 'order' ? ORDER_STATUSES : PAYMENT_STATUSES;
-    const entry = map[status] || { label: status, color: 'bg-gray-100 text-gray-800' };
+    const normalizedStatus = Object.keys(map).find((key) => key.toLowerCase() === String(status).toLowerCase());
+    const entry = map[status] || (normalizedStatus ? map[normalizedStatus] : undefined) || { label: status, color: 'bg-gray-100 text-gray-800' };
     return { label: entry.label, className: `inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${entry.color}` };
 }

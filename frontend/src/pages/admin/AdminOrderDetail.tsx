@@ -18,6 +18,7 @@ export default function AdminOrderDetail() {
     const [notes, setNotes] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [paidAmount, setPaidAmount] = useState('');
+    const [originalPaidAmount, setOriginalPaidAmount] = useState('');
     const [deleting, setDeleting] = useState(false);
 
 
@@ -34,6 +35,7 @@ export default function AdminOrderDetail() {
             setTrackingNumber(data.tracking_number || '');
             setNotes(data.notes || '');
             setPaidAmount(data.paid_amount || '');
+            setOriginalPaidAmount(data.paid_amount || '');
 
         } catch {
             setError('Failed to load order');
@@ -52,9 +54,15 @@ export default function AdminOrderDetail() {
                 tracking_number: trackingNumber,
                 notes,
             };
-            if (paidAmount) payload.paid_amount = paidAmount;
+            if (paidAmount !== originalPaidAmount) payload.paid_amount = paidAmount;
             const { data } = await api.post(`/admin/orders/${id}/status/`, payload);
             setOrder(data);
+            setOrderStatus(data.order_status);
+            setPaymentStatus(data.payment_status);
+            setTrackingNumber(data.tracking_number || '');
+            setNotes(data.notes || '');
+            setPaidAmount(data.paid_amount || '');
+            setOriginalPaidAmount(data.paid_amount || '');
             toast.success('Order updated');
         } catch {
             toast.error('Failed to update order');
