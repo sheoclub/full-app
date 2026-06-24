@@ -133,6 +133,20 @@ function metaForPath(pathname: string, settings: SiteSettings | null): PageMeta 
   };
 }
 
+function siteOriginFromSettings(settings: SiteSettings | null): string {
+  const configuredUrl = settings?.canonical_url || DEFAULT_SITE_URL;
+  try {
+    return new URL(configuredUrl).origin;
+  } catch {
+    return DEFAULT_SITE_URL;
+  }
+}
+
+function canonicalForPath(pathname: string, settings: SiteSettings | null): string {
+  const cleanPath = pathname === '/' ? '/' : `/${pathname.replace(/^\/+|\/+$/g, '')}`;
+  return `${siteOriginFromSettings(settings)}${cleanPath === '/' ? '/' : cleanPath}`;
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, initialLoading } = useAuthStore();
   const location = useLocation();
@@ -174,8 +188,7 @@ export default function App() {
   }
 
   const currentMeta = metaForPath(location.pathname, settings);
-  const canonicalBase = settings?.canonical_url || DEFAULT_SITE_URL;
-  const canonicalUrl = `${canonicalBase.replace(/\/$/, '')}${location.pathname === '/' ? '/' : location.pathname}`;
+  const canonicalUrl = canonicalForPath(location.pathname, settings);
   const ogTitle = settings?.og_title || currentMeta.title;
   const ogDescription = settings?.og_description || currentMeta.description;
 

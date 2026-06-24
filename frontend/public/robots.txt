@@ -1,4 +1,16 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
+Disallow: /login
+Disallow: /signup
+Disallow: /cart
+Disallow: /checkout
+Disallow: /payment/
+Disallow: /invoice/
+Disallow: /order/
+Disallow: /dashboard
+Disallow: /my-messages
+Disallow: /my-inbox
+Disallow: /wishlist
 
 Sitemap: https://sheoclub.vercel.app/sitemap.xml
