@@ -19,6 +19,7 @@ import ContactPage from '@/pages/public/ContactPage';
 import ShippingInfoPage from '@/pages/public/ShippingInfoPage';
 import ReturnPolicyPage from '@/pages/public/ReturnPolicyPage';
 import TrackOrderPage from '@/pages/public/TrackOrderPage';
+import NotFoundPage from '@/pages/public/NotFoundPage';
 
 // Auth Pages
 import LoginPage from '@/pages/auth/LoginPage';
@@ -263,7 +264,7 @@ export default function App() {
           <Route path="coupons" element={<AdminCoupons />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </>
   );
