@@ -218,7 +218,7 @@ export default function InvoicePage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {order.items.map((item: any, idx: number) => (
+                                {order.items.map((item, idx) => (
                                     <tr key={idx} className="border-b border-gray-100">
                                         <td className="py-4 px-2">
                                             <div className="flex items-center gap-3">
@@ -227,7 +227,20 @@ export default function InvoicePage() {
                                                     alt={item.product_name}
                                                     className="w-12 h-12 rounded-lg object-cover bg-gray-100 border"
                                                 />
-                                                <span className="font-medium text-gray-900">{item.product_name}</span>
+                                                <div>
+                                                    <span className="font-medium text-gray-900">{item.product_name}</span>
+                                                    {(item.variant_size || item.variant_color || item.variant_detail) && (
+                                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                                            {(item.variant_size || item.variant_detail?.size) && <span>Size: {item.variant_size || item.variant_detail?.size}</span>}
+                                                            {(item.variant_color || item.variant_detail?.color) && (
+                                                                <span className="inline-flex items-center gap-1">
+                                                                    {(item.variant_color_code || item.variant_detail?.color_code) && <span className="w-2.5 h-2.5 rounded-full border border-gray-300" style={{ backgroundColor: item.variant_color_code || item.variant_detail?.color_code }} />}
+                                                                    Color: {item.variant_color || item.variant_detail?.color}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="py-4 px-2 text-right text-gray-700">{formatCurrency(item.price)}</td>

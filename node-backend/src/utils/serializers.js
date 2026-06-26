@@ -156,17 +156,22 @@ function reviewSerializer(review) {
 
 function orderItemSerializer(item) {
     const productName = item.product?.name || 'Deleted product';
-    const productImage = item.product ? imageUrl(item.product.image) : '';
+    const productImage = item.variant?.image || item.product?.image || '';
+    const variantDetail = item.variant ? variantSerializer(item.variant) : null;
     return {
         id: item.id,
         product: item.productId,
         product_name: productName,
         name: productName,
-        thumbnail: productImage,
-        product_image: productImage,
-        image: productImage,
+        thumbnail: imageUrl(productImage),
+        product_image: imageUrl(productImage),
+        image: imageUrl(productImage),
         variant: item.variantId || null,
-        variant_detail: item.variant ? variantSerializer(item.variant) : null,
+        variant_detail: variantDetail,
+        variant_size: variantDetail?.size || '',
+        variant_color: variantDetail?.color || '',
+        variant_color_code: variantDetail?.color_code || '',
+        variant_sku: variantDetail?.sku || '',
         quantity: item.quantity,
         price: decimal(item.price),
         total: decimal(item.total),

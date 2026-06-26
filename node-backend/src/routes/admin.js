@@ -101,7 +101,7 @@ router.get('/dashboard/', asyncHandler(async (req, res) => {
     const [totalProducts, totalUsers, totalOrders, revenue, pendingOrders, pendingPayments, lowStock, recentOrders] = await Promise.all([
         prisma.product.count(), prisma.user.count(), prisma.order.count(), prisma.order.aggregate({ _sum: { paidAmount: true } }),
         prisma.order.count({ where: { orderStatus: 'Processing' } }), prisma.order.count({ where: { paymentStatus: 'Pending' } }),
-        prisma.product.count({ where: { stock: { lte: 5 } } }), prisma.order.findMany({ include: { user: true, coupon: true, items: { include: { product: true } } }, orderBy: { createdAt: 'desc' }, take: 10 }),
+        prisma.product.count({ where: { stock: { lte: 5 } } }), prisma.order.findMany({ include: { user: true, coupon: true, items: { include: { product: true, variant: true } } }, orderBy: { createdAt: 'desc' }, take: 10 }),
     ]);
     res.json({ total_products: totalProducts, total_users: totalUsers, total_orders: totalOrders, total_revenue: Number(revenue._sum.paidAmount || 0), total_profit: 0, pending_orders: pendingOrders, pending_payments: pendingPayments, low_stock: lowStock, recent_orders: recentOrders.map(orderSerializer) });
 }));
@@ -195,7 +195,7 @@ router.get('/orders/', asyncHandler(async (req, res) => {
     const where = {};
     if (req.query.payment_status) where.paymentStatus = req.query.payment_status;
     if (req.query.order_status) where.orderStatus = req.query.order_status;
-    const rows = await prisma.order.findMany({ where, include: { user: true, coupon: true, items: { include: { product: true } } }, orderBy: { createdAt: 'desc' } });
+    const rows = await prisma.order.findMany({ where, include: { user: true, coupon: true, items: { include: { product: true, variant: true } } }, orderBy: { createdAt: 'desc' } });
     res.json(rows.map(orderSerializer));
 }));
 router.post('/orders/create/', asyncHandler(async (req, res) => {
@@ -248,7 +248,7 @@ router.post('/orders/create/', asyncHandler(async (req, res) => {
                 notes: `${manualNotes}${req.body.notes || ''}`.trim(),
                 items: { create: resolvedItems.map((item) => ({ productId: item.product.id, quantity: item.quantity, price: item.price, total: item.total })) },
             },
-            include: { user: true, coupon: true, items: { include: { product: true } } },
+            include: { user: true, coupon: true, items: { include: { product: true, variant: true } } },
         });
         for (const item of resolvedItems) await tx.product.update({ where: { id: item.product.id }, data: { stock: { decrement: item.quantity } } });
         if (user) await tx.userNotification.create({ data: { userId: user.id, subject: 'New Order Created (Admin)', body: `An order #${created.id} has been created for you by the admin. Total: RS ${Number(grandTotal).toLocaleString()}` } });
@@ -257,7 +257,7 @@ router.post('/orders/create/', asyncHandler(async (req, res) => {
 
     res.status(201).json(orderSerializer(order));
 }));
-router.get('/orders/:id/', asyncHandler(async (req, res) => { const row = await prisma.order.findUnique({ where: { id: Number(req.params.id) }, include: { user: true, coupon: true, items: { include: { product: true } } } }); if (!row) throw new HttpError(404, 'Not found'); res.json(orderSerializer(row)); }));
+router.get('/orders/:id/', asyncHandler(async (req, res) => { const row = await prisma.order.findUnique({ where: { id: Number(req.params.id) }, include: { user: true, coupon: true, items: { include: { product: true, variant: true } } } }); if (!row) throw new HttpError(404, 'Not found'); res.json(orderSerializer(row)); }));
 router.post('/orders/:id/status/', asyncHandler(async (req, res) => {
     const order = await prisma.order.findUnique({ where: { id: Number(req.params.id) } });
     if (!order) throw new HttpError(404, 'Order not found');
@@ -269,7 +269,7 @@ router.post('/orders/:id/status/', asyncHandler(async (req, res) => {
     if ('notes' in req.body) data.notes = req.body.notes;
     if ('paid_amount' in req.body) Object.assign(data, paymentStatusUpdate(order, req.body.paid_amount, req.body.payment_amount_type));
 
-    const row = await prisma.order.update({ where: { id: order.id }, data, include: { user: true, coupon: true, items: { include: { product: true } } } });
+    const row = await prisma.order.update({ where: { id: order.id }, data, include: { user: true, coupon: true, items: { include: { product: true, variant: true } } } });
     res.json(orderSerializer(row));
 }));
 router.delete('/orders/:id/delete/', asyncHandler(async (req, res) => {
@@ -288,7 +288,7 @@ router.delete('/orders/:id/delete/', asyncHandler(async (req, res) => {
 }));
 
 router.get('/users/', asyncHandler(async (req, res) => { const where = req.query.search ? { OR: [{ email: { contains: String(req.query.search), mode: 'insensitive' } }, { phone: { contains: String(req.query.search), mode: 'insensitive' } }] } : {}; const users = await prisma.user.findMany({ where, include: { _count: { select: { orders: true } } }, orderBy: { dateJoined: 'desc' } }); res.json(users.map(publicUser)); }));
-router.get('/users/:id/', asyncHandler(async (req, res) => { const user = await prisma.user.findUnique({ where: { id: Number(req.params.id) }, include: { _count: { select: { orders: true } } } }); const orders = await prisma.order.findMany({ where: { userId: Number(req.params.id) }, include: { user: true, coupon: true, items: { include: { product: true } } }, orderBy: { createdAt: 'desc' } }); res.json({ user: publicUser(user), orders: orders.map(orderSerializer) }); }));
+router.get('/users/:id/', asyncHandler(async (req, res) => { const user = await prisma.user.findUnique({ where: { id: Number(req.params.id) }, include: { _count: { select: { orders: true } } } }); const orders = await prisma.order.findMany({ where: { userId: Number(req.params.id) }, include: { user: true, coupon: true, items: { include: { product: true, variant: true } } }, orderBy: { createdAt: 'desc' } }); res.json({ user: publicUser(user), orders: orders.map(orderSerializer) }); }));
 router.post('/users/:id/toggle/', asyncHandler(async (req, res) => { const user = await prisma.user.update({ where: { id: Number(req.params.id) }, data: { isSuspended: { set: !(await prisma.user.findUnique({ where: { id: Number(req.params.id) } })).isSuspended } } }); res.json({ message: `User ${user.isSuspended ? 'suspended' : 'activated'}`, is_suspended: user.isSuspended }); }));
 
 router.get('/reviews/', asyncHandler(async (req, res) => { const rows = await prisma.review.findMany({ include: { user: true, product: true }, orderBy: { createdAt: 'desc' } }); res.json(rows.map(reviewSerializer)); }));

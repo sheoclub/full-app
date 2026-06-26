@@ -201,6 +201,10 @@ export interface OrderItem {
     image?: string;
     variant?: number | null;
     variant_detail?: ProductVariant | null;
+    variant_size?: string;
+    variant_color?: string;
+    variant_color_code?: string;
+    variant_sku?: string;
     price: string;
     quantity: number;
     total: string;

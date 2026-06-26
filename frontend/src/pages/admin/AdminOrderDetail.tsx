@@ -167,7 +167,20 @@ export default function AdminOrderDetail() {
                                         <tr key={item.id} className="border-b border-gray-100">
                                             <td className="py-2 px-2 flex items-center gap-2">
                                                 <img src={getImageUrl(item.product_image)} alt="" className="w-10 h-10 rounded-lg object-cover bg-gray-100" />
-                                                <span className="font-medium text-gray-900">{item.product_name}</span>
+                                                <div>
+                                                    <span className="font-medium text-gray-900">{item.product_name}</span>
+                                                    {(item.variant_size || item.variant_color) && (
+                                                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                                            {item.variant_size && <span>Size: {item.variant_size}</span>}
+                                                            {item.variant_color && (
+                                                                <span className="inline-flex items-center gap-1">
+                                                                    {item.variant_color_code && <span className="w-2.5 h-2.5 rounded-full border border-gray-300" style={{ backgroundColor: item.variant_color_code }} />}
+                                                                    Color: {item.variant_color}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="py-2 px-2 text-right">{formatCurrency(item.price)}</td>
                                             <td className="py-2 px-2 text-center">{item.quantity}</td>

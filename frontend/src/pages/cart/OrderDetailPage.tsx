@@ -100,11 +100,16 @@ export default function OrderDetailPage() {
                                         />
                                         <div className="flex-1 min-w-0">
                                             <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                                            {item.variant_detail && (
-                                                <p className="text-sm text-gray-500">
-                                                    {item.variant_detail.size && `Size: ${item.variant_detail.size}`}
-                                                    {item.variant_detail.color && ` | Color: ${item.variant_detail.color}`}
-                                                </p>
+                                            {(item.variant_size || item.variant_color || item.variant_detail) && (
+                                                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                                                    {(item.variant_size || item.variant_detail?.size) && <span>Size: {item.variant_size || item.variant_detail?.size}</span>}
+                                                    {(item.variant_color || item.variant_detail?.color) && (
+                                                        <span className="inline-flex items-center gap-1">
+                                                            {(item.variant_color_code || item.variant_detail?.color_code) && <span className="w-3 h-3 rounded-full border border-gray-300" style={{ backgroundColor: item.variant_color_code || item.variant_detail?.color_code }} />}
+                                                            Color: {item.variant_color || item.variant_detail?.color}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             )}
                                             <div className="flex items-center justify-between mt-2">
                                                 <span className="text-sm text-gray-500">Qty: {item.quantity}</span>

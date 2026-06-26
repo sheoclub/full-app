@@ -133,12 +133,12 @@ router.post('/checkout/', requireAuth, upload.single('payment_proof'), asyncHand
 
 router.get('/orders/', requireAuth, asyncHandler(async (req, res) => {
     const where = req.user.isStaff ? {} : { userId: req.user.id };
-    const orders = await prisma.order.findMany({ where, include: { user: true, coupon: true, items: { include: { product: true } } }, orderBy: { createdAt: 'desc' } });
+    const orders = await prisma.order.findMany({ where, include: { user: true, coupon: true, items: { include: { product: true, variant: true } } }, orderBy: { createdAt: 'desc' } });
     res.json({ count: orders.length, next: null, previous: null, results: orders.map(orderSerializer) });
 }));
 
 router.get('/orders/:id/', requireAuth, asyncHandler(async (req, res) => {
-    const order = await prisma.order.findUnique({ where: { id: Number(req.params.id) }, include: { user: true, coupon: true, items: { include: { product: true } } } });
+    const order = await prisma.order.findUnique({ where: { id: Number(req.params.id) }, include: { user: true, coupon: true, items: { include: { product: true, variant: true } } } });
     if (!order || (!req.user.isStaff && order.userId !== req.user.id)) throw new HttpError(404, 'Not found');
     res.json(orderSerializer(order));
 }));
@@ -149,14 +149,14 @@ router.post('/orders/:id/upload_proof/', requireAuth, upload.single('payment_pro
     if (!order || (!req.user.isStaff && order.userId !== req.user.id)) throw new HttpError(403, 'Not authorized');
     const existing = order.paymentProof ? order.paymentProof.split(',').filter(Boolean) : [];
     existing.push(uploadedFileValue(req.file));
-    const updated = await prisma.order.update({ where: { id: order.id }, data: { paymentProof: existing.join(','), paymentStatus: 'Pending', orderStatus: 'Payment Verification' }, include: { user: true, coupon: true, items: { include: { product: true } } } });
+    const updated = await prisma.order.update({ where: { id: order.id }, data: { paymentProof: existing.join(','), paymentStatus: 'Pending', orderStatus: 'Payment Verification' }, include: { user: true, coupon: true, items: { include: { product: true, variant: true } } } });
     res.json(orderSerializer(updated));
 }));
 
 router.get('/track-order/', asyncHandler(async (req, res) => {
     const trackingNumber = String(req.query.tracking_number || '').trim();
     if (!trackingNumber) throw new HttpError(400, 'Tracking number is required');
-    const order = await prisma.order.findFirst({ where: { trackingNumber: { equals: trackingNumber, mode: 'insensitive' } }, include: { user: true, coupon: true, items: { include: { product: true } } } });
+    const order = await prisma.order.findFirst({ where: { trackingNumber: { equals: trackingNumber, mode: 'insensitive' } }, include: { user: true, coupon: true, items: { include: { product: true, variant: true } } } });
     if (!order) throw new HttpError(404, 'Order not found with that tracking number');
     res.json(orderSerializer(order));
 }));
